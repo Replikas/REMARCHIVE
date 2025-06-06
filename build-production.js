@@ -9,9 +9,12 @@ console.log('Building for production deployment...');
 process.env.NODE_ENV = 'production';
 
 try {
+  // Ensure all dependencies are available for build
+  console.log('Ensuring build dependencies...');
+  
   // Use the production vite config that excludes Replit plugins
   console.log('Building frontend with production config...');
-  execSync('npx vite build --config vite.config.production.ts', { stdio: 'inherit' });
+  execSync('./node_modules/.bin/vite build --config vite.config.production.ts', { stdio: 'inherit' });
   
   console.log('Copying production server...');
   execSync('cp server/index.production.ts dist/index.js', { stdio: 'inherit' });
@@ -22,5 +25,16 @@ try {
   console.log('- Backend: dist/index.js');
 } catch (error) {
   console.error('Build failed:', error.message);
-  process.exit(1);
+  console.error('Trying alternative build approach...');
+  
+  try {
+    // Fallback: use node to run vite directly
+    console.log('Using direct vite execution...');
+    execSync('node ./node_modules/vite/bin/vite.js build --config vite.config.production.ts', { stdio: 'inherit' });
+    execSync('cp server/index.production.ts dist/index.js', { stdio: 'inherit' });
+    console.log('Fallback build completed successfully!');
+  } catch (fallbackError) {
+    console.error('Both build methods failed:', fallbackError.message);
+    process.exit(1);
+  }
 }

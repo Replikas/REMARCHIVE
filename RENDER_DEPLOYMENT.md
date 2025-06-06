@@ -37,7 +37,7 @@ npm run db:push
 - Branch: `main`
 
 **Build & Deploy:**
-- Build Command: `npm install && node build-production.js`
+- Build Command: `npm ci --include=dev && node build-production.js`
 - Start Command: `NODE_ENV=production node dist/index.js`
 
 ### 2. Environment Variables
