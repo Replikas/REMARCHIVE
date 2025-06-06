@@ -49,8 +49,8 @@ export async function authenticateToken(req: AuthRequest, res: Response, next: N
 
   try {
     const user = await storage.getUserById(decoded.userId);
-    if (!user || !user.isActive) {
-      return res.status(401).json({ message: 'User not found or inactive' });
+    if (!user || user.isBanned) {
+      return res.status(401).json({ message: 'User not found or banned' });
     }
 
     req.user = {
@@ -74,7 +74,7 @@ export async function optionalAuth(req: AuthRequest, res: Response, next: NextFu
     if (decoded) {
       try {
         const user = await storage.getUserById(decoded.userId);
-        if (user && user.isActive) {
+        if (user && !user.isBanned) {
           req.user = {
             id: user.id,
             email: user.email,
@@ -105,8 +105,8 @@ export async function requireModerator(req: AuthRequest, res: Response, next: Ne
 
   try {
     const user = await storage.getUserById(decoded.userId);
-    if (!user || !user.isActive) {
-      return res.status(401).json({ message: 'User not found or inactive' });
+    if (!user || user.isBanned) {
+      return res.status(401).json({ message: 'User not found or banned' });
     }
 
     if (user.isBanned) {
@@ -144,8 +144,8 @@ export async function requireAdmin(req: AuthRequest, res: Response, next: NextFu
 
   try {
     const user = await storage.getUserById(decoded.userId);
-    if (!user || !user.isActive) {
-      return res.status(401).json({ message: 'User not found or inactive' });
+    if (!user || user.isBanned) {
+      return res.status(401).json({ message: 'User not found or banned' });
     }
 
     if (user.isBanned) {
@@ -184,8 +184,8 @@ export async function requireAgeVerification(req: AuthRequest, res: Response, ne
 
   try {
     const user = await storage.getUserById(decoded.userId);
-    if (!user || !user.isActive) {
-      return res.status(401).json({ message: 'User not found or inactive' });
+    if (!user || user.isBanned) {
+      return res.status(401).json({ message: 'User not found or banned' });
     }
 
     if (user.isBanned) {
