@@ -37,7 +37,7 @@ npm run db:push
 - Branch: `main`
 
 **Build & Deploy:**
-- Build Command: `npm install && npm run build`
+- Build Command: `npm install && node build-production.js`
 - Start Command: `npm start`
 
 ### 2. Environment Variables
@@ -124,10 +124,17 @@ npm run build
 
 ### Common Issues:
 
+**Vite Build Failures (Replit Plugin Issues):**
+The project uses Replit-specific plugins that cause build failures on Render. Solution:
+- Use the custom build script: `node build-production.js`
+- This script uses `vite.config.production.ts` which excludes Replit plugins
+- If build still fails, try: `NODE_ENV=production vite build --config vite.config.production.ts`
+
 **Build Failures:**
-- Check Node.js version compatibility
+- Check Node.js version compatibility (use Node 18+ recommended)
 - Verify all dependencies are in `package.json`
 - Review build logs for specific errors
+- Clear build cache if needed
 
 **Database Connection Issues:**
 - Verify DATABASE_URL format
