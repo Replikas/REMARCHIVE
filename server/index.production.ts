@@ -2,6 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import path from "path";
 import fs from "fs";
+import * as cron from "node-cron";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(express.json());
@@ -91,6 +93,28 @@ function serveStatic(app: express.Express) {
       console.log(`[${new Date().toISOString()}] Server running on port ${port}`);
       console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV}`);
       console.log(`[${new Date().toISOString()}] Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+      
+      // Anti-sleep ping mechanism - ping every 14 minutes to prevent Render free tier sleep
+      const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+      
+      cron.schedule('*/14 * * * *', async () => {
+        try {
+          const response = await fetch(`${baseUrl}/health`, {
+            method: 'GET',
+            timeout: 10000 // 10 second timeout
+          });
+          
+          if (response.ok) {
+            console.log(`[${new Date().toISOString()}] Anti-sleep ping successful`);
+          } else {
+            console.log(`[${new Date().toISOString()}] Anti-sleep ping failed with status: ${response.status}`);
+          }
+        } catch (error) {
+          console.log(`[${new Date().toISOString()}] Anti-sleep ping error:`, error.message);
+        }
+      });
+      
+      console.log(`[${new Date().toISOString()}] Anti-sleep ping scheduled every 14 minutes`);
     });
 
     // Graceful shutdown
