@@ -79,7 +79,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       });
 
       if (selectedFile) {
-        formData.append("image", selectedFile);
+        formData.append("file", selectedFile);
       }
 
       const response = await apiRequest("POST", "/api/fanworks", formData);

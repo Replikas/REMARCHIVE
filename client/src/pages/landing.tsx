@@ -92,27 +92,18 @@ export default function Landing() {
           </Card>
         </div>
 
-        {/* Stats Section */}
+        {/* Community Section */}
         <div className="bg-dark-surface rounded-lg p-8 text-center">
-          <h2 className="text-2xl font-bold mb-6 text-neon-green">Archive Stats</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <div className="text-3xl font-bold text-portal-blue">2.8K+</div>
-              <div className="text-muted-foreground">Artworks</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-neon-green">1.9K+</div>
-              <div className="text-muted-foreground">Fanfictions</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-warning-amber">456</div>
-              <div className="text-muted-foreground">Comics</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-foreground">500+</div>
-              <div className="text-muted-foreground">Creators</div>
-            </div>
-          </div>
+          <h2 className="text-2xl font-bold mb-6 text-neon-green">Join the Community</h2>
+          <p className="text-muted-foreground mb-6">
+            Be part of the growing Rick and Morty fanworks community. Upload your creations, 
+            discover amazing content, and connect with fellow fans across the multiverse.
+          </p>
+          <Link href="/register">
+            <Button className="bg-neon-green text-dark-bg hover:bg-neon-green/90 glow-neon">
+              Start Creating Today
+            </Button>
+          </Link>
         </div>
       </main>
 
