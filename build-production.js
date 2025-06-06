@@ -11,7 +11,7 @@ process.env.NODE_ENV = 'production';
 try {
   // Use the production vite config that excludes Replit plugins
   console.log('Building frontend with production config...');
-  execSync('vite build --config vite.config.production.ts', { stdio: 'inherit' });
+  execSync('npx vite build --config vite.config.production.ts', { stdio: 'inherit' });
   
   console.log('Copying production server...');
   execSync('cp server/index.production.ts dist/index.js', { stdio: 'inherit' });
