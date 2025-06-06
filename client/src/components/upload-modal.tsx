@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+// @ts-ignore
 import { Upload, FileImage, BookOpen, X, Loader2, ExternalLink } from "lucide-react";
 import AO3Import from "./ao3-import";
 
@@ -48,6 +49,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [importMode, setImportMode] = useState<'manual' | 'ao3'>('manual');
+  const [watchedType, setWatchedType] = useState<string>("");
 
   const form = useForm<UploadFormData>({
     resolver: zodResolver(uploadSchema),
@@ -64,87 +66,82 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     },
   });
 
-  const watchedType = form.watch("type");
-
   const uploadMutation = useMutation({
-    mutationFn: async (data: UploadFormData) => {
-      if (!isAuthenticated) {
-        throw new Error("You must be logged in to upload");
-      }
-
+    mutationFn: async (data: UploadFormData & { file?: File }) => {
       const formData = new FormData();
-      
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          formData.append(key, value.toString());
+          if (key === 'file' && value instanceof File) {
+            formData.append(key, value);
+          } else {
+            formData.append(key, String(value));
+          }
         }
       });
-
-      if (selectedFile) {
-        formData.append("file", selectedFile);
-      }
-
-      const response = await apiRequest("POST", "/api/fanworks", formData);
-      return response;
+      
+      return apiRequest('/api/uploads', {
+        method: 'POST',
+        body: formData,
+      });
     },
     onSuccess: () => {
       toast({
-        title: "Success!",
+        title: "Success",
         description: "Your fanwork has been uploaded successfully!",
-        className: "bg-dark-surface border-neon-green text-foreground",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/fanworks"] });
-      handleClose();
+      queryClient.invalidateQueries({ queryKey: ['uploads'] });
+      onOpenChange(false);
+      form.reset();
+      setSelectedFile(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       if (isUnauthorizedError(error)) {
         toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          title: "Authentication Required",
+          description: "Please log in to upload fanworks.",
           variant: "destructive",
         });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: error.message || "Failed to upload fanwork. Please try again.",
+          variant: "destructive",
+        });
       }
-      toast({
-        title: "Upload Failed",
-        description: error.message || "Failed to upload fanwork. Please try again.",
-        variant: "destructive",
-      });
     },
   });
 
-  const handleFileSelect = (file: File) => {
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
+  const handleSubmit = (data: UploadFormData) => {
+    if (!isAuthenticated) {
       toast({
-        title: "Invalid File Type",
-        description: "Please select an image file (JPEG, PNG, GIF, or WebP)",
+        title: "Authentication Required",
+        description: "Please log in to upload fanworks.",
         variant: "destructive",
       });
       return;
     }
 
+    uploadMutation.mutate({ ...data, file: selectedFile || undefined });
+  };
+
+  const handleFileSelect = (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Please select a file smaller than 10MB",
+        description: "Please select a file smaller than 10MB.",
         variant: "destructive",
       });
       return;
     }
-
     setSelectedFile(file);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileSelect(file);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
     }
   };
 
@@ -158,369 +155,275 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     setDragOver(false);
   };
 
-  const handleClose = () => {
-    form.reset();
-    setSelectedFile(null);
-    setDragOver(false);
-    setImportMode('manual');
-    onOpenChange(false);
-  };
-
-  const handleAO3Import = (data: {
-    title: string;
-    content: string;
-    description?: string;
-    tags: string;
-    wordCount?: number;
-    chapterCount?: number;
-    rating: string;
-  }) => {
-    form.setValue('title', data.title);
-    form.setValue('content', data.content);
+  const handleAO3Import = (data: any) => {
+    form.setValue('title', data.title || '');
     form.setValue('description', data.description || '');
-    form.setValue('tags', data.tags);
     form.setValue('wordCount', data.wordCount);
     form.setValue('chapterCount', data.chapterCount);
-    form.setValue('rating', data.rating as any);
-    form.setValue('type', 'fanfiction');
-    setImportMode('manual');
-    
-    toast({
-      title: "Import Successful!",
-      description: "Story imported from AO3. You can now review and submit.",
-      className: "bg-dark-surface border-neon-green text-foreground",
-    });
+    form.setValue('isComplete', data.isComplete || false);
+    form.setValue('tags', data.tags || '');
   };
 
-  const onSubmit = (data: UploadFormData) => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Login Required",
-        description: "Please log in to upload fanworks",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-
-    // Validate file requirement for artwork/comic
-    if ((data.type === "artwork" || data.type === "comic") && !selectedFile) {
-      toast({
-        title: "Image Required",
-        description: `An image file is required for ${data.type}`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    uploadMutation.mutate(data);
-  };
-
-  // Check authentication when modal opens
-  if (open && !isAuthenticated) {
-    toast({
-      title: "Login Required",
-      description: "Please log in to upload fanworks",
-      variant: "destructive",
+  React.useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value.type) {
+        setWatchedType(value.type);
+      }
     });
-    setTimeout(() => {
-      window.location.href = "/api/login";
-    }, 500);
-    return null;
-  }
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-dark-surface border-border max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] bg-dark-bg border-border">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-neon-green flex items-center gap-2">
-            <Upload className="h-6 w-6" />
-            Upload New Fanwork
-          </DialogTitle>
+          <DialogTitle className="text-foreground">Upload Fanwork</DialogTitle>
         </DialogHeader>
-
+        
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground">Title *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter fanwork title..." 
-                          className="bg-dark-elevated border-border text-foreground placeholder:text-muted-foreground focus:border-neon-green"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground">Content Type *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-dark-elevated border-border text-foreground focus:border-neon-green">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-dark-surface border-border">
-                          <SelectItem value="artwork" className="text-foreground hover:bg-dark-elevated">
-                            <div className="flex items-center gap-2">
-                              <FileImage className="h-4 w-4" />
-                              Artwork
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="fanfiction" className="text-foreground hover:bg-dark-elevated">
-                            <div className="flex items-center gap-2">
-                              <BookOpen className="h-4 w-4" />
-                              Fanfiction
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="comic" className="text-foreground hover:bg-dark-elevated">
-                            <div className="flex items-center gap-2">
-                              <FileImage className="h-4 w-4" />
-                              Comic
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="rating"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground">Content Rating *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="bg-dark-elevated border-border text-foreground focus:border-neon-green">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-dark-surface border-border">
-                          <SelectItem value="all-ages" className="text-foreground hover:bg-dark-elevated">
-                            <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                              All Ages
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="teen" className="text-foreground hover:bg-dark-elevated">
-                            <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-                              Teen+
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="mature" className="text-foreground hover:bg-dark-elevated">
-                            <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-yellow-600 rounded-full"></span>
-                              Mature
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="explicit" className="text-foreground hover:bg-dark-elevated">
-                            <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 bg-red-600 rounded-full"></span>
-                              Explicit
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="tags"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground">Tags (comma-separated)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="rickorty, angst, hurt-comfort..."
-                          className="bg-dark-elevated border-border text-foreground placeholder:text-muted-foreground focus:border-neon-green"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-4">
-                {(watchedType === "artwork" || watchedType === "comic") && (
-                  <div>
-                    <FormLabel className="text-foreground">Image Upload *</FormLabel>
-                    <div
-                      className={`upload-area rounded-lg p-6 text-center transition-colors cursor-pointer ${
-                        dragOver ? "border-portal-blue bg-portal-blue/10" : ""
-                      }`}
-                      onDrop={handleDrop}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.onchange = (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          if (file) handleFileSelect(file);
-                        };
-                        input.click();
-                      }}
-                    >
-                      {selectedFile ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-foreground">{selectedFile.name}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedFile(null);
-                              }}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <FileImage className="h-12 w-12 text-neon-green mx-auto mb-4" />
-                          <p className="text-sm text-muted-foreground mb-3">
-                            Drag & drop an image or{" "}
-                            <span className="text-neon-green cursor-pointer hover:underline">
-                              browse files
-                            </span>
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            JPEG, PNG, GIF, WebP up to 10MB
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </div>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground">Title *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter title..."
+                        className="bg-dark-elevated border-border text-foreground placeholder:text-muted-foreground focus:border-neon-green"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground">Type *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="bg-dark-elevated border-border text-foreground focus:border-neon-green">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-dark-elevated border-border">
+                        <SelectItem value="artwork" className="text-foreground hover:bg-dark-surface">Artwork</SelectItem>
+                        <SelectItem value="fanfiction" className="text-foreground hover:bg-dark-surface">Fanfiction</SelectItem>
+                        <SelectItem value="comic" className="text-foreground hover:bg-dark-surface">Comic</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-                {watchedType === "fanfiction" && (
-                  <div className="space-y-4">
-                    {/* Import Mode Toggle */}
-                    <div className="flex gap-2 p-1 bg-dark-surface rounded-lg">
-                      <Button
-                        type="button"
-                        variant={importMode === 'manual' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setImportMode('manual')}
-                        className={`flex-1 ${importMode === 'manual' ? 'bg-neon-green text-dark-bg' : 'text-muted-foreground hover:text-foreground'}`}
-                      >
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        Manual Entry
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={importMode === 'ao3' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setImportMode('ao3')}
-                        className={`flex-1 ${importMode === 'ao3' ? 'bg-neon-green text-dark-bg' : 'text-muted-foreground hover:text-foreground'}`}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Import from AO3
-                      </Button>
-                    </div>
+            <FormField
+              control={form.control}
+              name="rating"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground">Rating *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="bg-dark-elevated border-border text-foreground focus:border-neon-green">
+                        <SelectValue placeholder="Select rating" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-dark-elevated border-border">
+                      <SelectItem value="all-ages" className="text-foreground hover:bg-dark-surface">All Ages</SelectItem>
+                      <SelectItem value="teen" className="text-foreground hover:bg-dark-surface">Teen</SelectItem>
+                      <SelectItem value="mature" className="text-foreground hover:bg-dark-surface">Mature</SelectItem>
+                      <SelectItem value="explicit" className="text-foreground hover:bg-dark-surface">Explicit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                    {importMode === 'ao3' ? (
-                      <AO3Import onImport={handleAO3Import} />
-                    ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="wordCount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-foreground">Word Count</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number"
-                                placeholder="0"
-                                className="bg-dark-elevated border-border text-foreground placeholder:text-muted-foreground focus:border-neon-green"
-                                {...field}
-                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="chapterCount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-foreground">Chapters</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number"
-                                placeholder="1"
-                                className="bg-dark-elevated border-border text-foreground placeholder:text-muted-foreground focus:border-neon-green"
-                                {...field}
-                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="isComplete"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-neon-green data-[state=checked]:border-neon-green"
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel className="text-foreground cursor-pointer">
-                              Mark as Complete
-                            </FormLabel>
-                          </div>
-                        </FormItem>
-                      )}
+            <FormField
+              control={form.control}
+              name="tags"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground">Tags</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter tags separated by commas..."
+                      className="bg-dark-elevated border-border text-foreground placeholder:text-muted-foreground focus:border-neon-green"
+                      {...field} 
                     />
-                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="space-y-4">
+              {(watchedType === "artwork" || watchedType === "comic") && (
+                <div>
+                  <FormLabel className="text-foreground">Image Upload *</FormLabel>
+                  <div
+                    className={`upload-area rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                      dragOver ? "border-portal-blue bg-portal-blue/10" : ""
+                    }`}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) handleFileSelect(file);
+                      };
+                      input.click();
+                    }}
+                  >
+                    {selectedFile ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-foreground">{selectedFile.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedFile(null);
+                            }}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <FileImage className="h-12 w-12 text-neon-green mx-auto mb-4" />
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Drag & drop an image or{" "}
+                          <span className="text-neon-green cursor-pointer hover:underline">
+                            browse files
+                          </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          JPEG, PNG, GIF, WebP up to 10MB
+                        </p>
+                      </>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {watchedType === "fanfiction" && (
+                <div>
+                  {/* Import Mode Toggle */}
+                  <div className="flex gap-2 p-1 bg-dark-surface rounded-lg mb-4">
+                    <Button
+                      type="button"
+                      variant={importMode === 'manual' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setImportMode('manual')}
+                      className={`flex-1 ${importMode === 'manual' ? 'bg-neon-green text-dark-bg' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Manual Entry
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={importMode === 'ao3' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setImportMode('ao3')}
+                      className={`flex-1 ${importMode === 'ao3' ? 'bg-neon-green text-dark-bg' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Import from AO3
+                    </Button>
+                  </div>
+
+                  {importMode === 'ao3' ? (
+                    <AO3Import onImport={handleAO3Import} />
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="wordCount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-foreground">Word Count</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number"
+                                  placeholder="0"
+                                  className="bg-dark-elevated border-border text-foreground placeholder:text-muted-foreground focus:border-neon-green"
+                                  {...field}
+                                  onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="chapterCount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-foreground">Chapters</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number"
+                                  placeholder="1"
+                                  className="bg-dark-elevated border-border text-foreground placeholder:text-muted-foreground focus:border-neon-green"
+                                  {...field}
+                                  onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="isComplete"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className="data-[state=checked]:bg-neon-green data-[state=checked]:border-neon-green"
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-foreground cursor-pointer">
+                                Mark as Complete
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <FormField
@@ -541,50 +444,29 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
               )}
             />
 
-            {watchedType === "fanfiction" && (
-              <FormField
-                control={form.control}
-                name="content"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-foreground">Story Content</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Paste your story here..."
-                        className="bg-dark-elevated border-border text-foreground placeholder:text-muted-foreground min-h-[200px] font-mono focus:border-neon-green"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            <div className="flex justify-end space-x-4 pt-4 border-t border-border">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={uploadMutation.isPending}
-                className="border-muted-foreground text-muted-foreground hover:border-foreground hover:text-foreground"
+            <div className="flex justify-end gap-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                className="border-border text-muted-foreground hover:text-foreground hover:bg-dark-surface"
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
+              <Button 
+                type="submit" 
                 disabled={uploadMutation.isPending}
-                className="bg-neon-green text-dark-bg hover:bg-neon-green/90 glow-neon"
+                className="bg-neon-green text-dark-bg hover:bg-neon-green/90"
               >
                 {uploadMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Uploading...
                   </>
                 ) : (
                   <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Fanwork
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
                   </>
                 )}
               </Button>
