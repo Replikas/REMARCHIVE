@@ -85,8 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: validatedData.username,
         passwordHash,
         firstName: validatedData.firstName,
-        lastName: validatedData.lastName,
-        isActive: true
+        lastName: validatedData.lastName
       });
 
       const token = generateToken(user.id);
@@ -108,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = loginSchema.parse(req.body);
 
       const user = await storage.getUserByEmail(validatedData.email);
-      if (!user || !user.isActive) {
+      if (!user || user.isBanned) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
