@@ -160,8 +160,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Filters applied:', filters);
 
       const fanworks = await storage.getFanworks(filters);
-      console.log('Fanworks found:', fanworks.length, fanworks);
-      res.json(fanworks);
+      
+      // Map contentUrl to imageUrl for frontend compatibility
+      const mappedFanworks = fanworks.map(fanwork => ({
+        ...fanwork,
+        imageUrl: fanwork.contentUrl
+      }));
+      
+      console.log('Fanworks found:', mappedFanworks.length, mappedFanworks);
+      res.json(mappedFanworks);
     } catch (error) {
       console.error('Error fetching fanworks:', error);
       res.status(500).json({ message: 'Failed to fetch fanworks' });
@@ -177,7 +184,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Fanwork not found' });
       }
 
-      res.json(fanwork);
+      // Map contentUrl to imageUrl for frontend compatibility
+      const mappedFanwork = {
+        ...fanwork,
+        imageUrl: fanwork.contentUrl
+      };
+      
+      res.json(mappedFanwork);
     } catch (error) {
       console.error('Error fetching fanwork:', error);
       res.status(500).json({ message: 'Failed to fetch fanwork' });
@@ -447,7 +460,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         moderatedAt: new Date(),
       });
       
-      res.json(fanwork);
+      // Map contentUrl to imageUrl for frontend compatibility
+      const mappedFanwork = {
+        ...fanwork,
+        imageUrl: fanwork.contentUrl
+      };
+      
+      res.json(mappedFanwork);
     } catch (error) {
       console.error('Error hiding fanwork:', error);
       res.status(500).json({ message: 'Failed to hide fanwork' });
@@ -459,7 +478,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fanworkId = parseInt(req.params.id);
       
       const fanwork = await storage.unhideFanwork(fanworkId);
-      res.json(fanwork);
+      // Map contentUrl to imageUrl for frontend compatibility
+      const mappedFanwork = {
+        ...fanwork,
+        imageUrl: fanwork.contentUrl
+      };
+      
+      res.json(mappedFanwork);
     } catch (error) {
       console.error('Error unhiding fanwork:', error);
       res.status(500).json({ message: 'Failed to unhide fanwork' });
