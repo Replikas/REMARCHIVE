@@ -16,8 +16,8 @@ try {
   console.log('Building frontend with production config...');
   execSync('npx vite build --config vite.config.production.ts', { stdio: 'inherit' });
   
-  console.log('Copying production server...');
-  execSync('cp server/index.production.ts dist/index.js', { stdio: 'inherit' });
+  console.log('Building production server...');
+  execSync('npx esbuild server/index.production.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --outfile=dist/index.js', { stdio: 'inherit' });
   
   console.log('Production build completed successfully!');
   console.log('Files ready for deployment:');
@@ -31,7 +31,7 @@ try {
     // Fallback: use npx with explicit vite call
     console.log('Using npx vite execution...');
     execSync('npx --yes vite build --config vite.config.production.ts', { stdio: 'inherit' });
-    execSync('cp server/index.production.ts dist/index.js', { stdio: 'inherit' });
+    execSync('npx esbuild server/index.production.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --outfile=dist/index.js', { stdio: 'inherit' });
     console.log('Fallback build completed successfully!');
   } catch (fallbackError) {
     console.error('Both build methods failed:', fallbackError.message);
