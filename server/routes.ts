@@ -35,9 +35,7 @@ const ao3ImportSchema = z.object({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure Cloudinary
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    url: process.env.CLOUDINARY_URL,
   });
 
   // Configure multer with Cloudinary storage
