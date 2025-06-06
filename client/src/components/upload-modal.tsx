@@ -20,7 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, FileImage, BookOpen, X, Loader2 } from "lucide-react";
+import { Upload, FileImage, BookOpen, X, Loader2, ExternalLink } from "lucide-react";
+import AO3Import from "./ao3-import";
 
 const uploadSchema = z.object({
   title: z.string().min(1, "Title is required").max(255, "Title too long"),
@@ -46,6 +47,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [importMode, setImportMode] = useState<'manual' | 'ao3'>('manual');
 
   const form = useForm<UploadFormData>({
     resolver: zodResolver(uploadSchema),
@@ -160,7 +162,34 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     form.reset();
     setSelectedFile(null);
     setDragOver(false);
+    setImportMode('manual');
     onOpenChange(false);
+  };
+
+  const handleAO3Import = (data: {
+    title: string;
+    content: string;
+    description?: string;
+    tags: string;
+    wordCount?: number;
+    chapterCount?: number;
+    rating: string;
+  }) => {
+    form.setValue('title', data.title);
+    form.setValue('content', data.content);
+    form.setValue('description', data.description || '');
+    form.setValue('tags', data.tags);
+    form.setValue('wordCount', data.wordCount);
+    form.setValue('chapterCount', data.chapterCount);
+    form.setValue('rating', data.rating as any);
+    form.setValue('type', 'fanfiction');
+    setImportMode('manual');
+    
+    toast({
+      title: "Import Successful!",
+      description: "Story imported from AO3. You can now review and submit.",
+      className: "bg-dark-surface border-neon-green text-foreground",
+    });
   };
 
   const onSubmit = (data: UploadFormData) => {
@@ -398,6 +427,33 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
                 {watchedType === "fanfiction" && (
                   <div className="space-y-4">
+                    {/* Import Mode Toggle */}
+                    <div className="flex gap-2 p-1 bg-dark-surface rounded-lg">
+                      <Button
+                        type="button"
+                        variant={importMode === 'manual' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setImportMode('manual')}
+                        className={`flex-1 ${importMode === 'manual' ? 'bg-neon-green text-dark-bg' : 'text-muted-foreground hover:text-foreground'}`}
+                      >
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Manual Entry
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={importMode === 'ao3' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setImportMode('ao3')}
+                        className={`flex-1 ${importMode === 'ao3' ? 'bg-neon-green text-dark-bg' : 'text-muted-foreground hover:text-foreground'}`}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Import from AO3
+                      </Button>
+                    </div>
+
+                    {importMode === 'ao3' ? (
+                      <AO3Import onImport={handleAO3Import} />
+                    ) : (
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -460,6 +516,8 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
                         </FormItem>
                       )}
                     />
+                    </div>
+                    )}
                   </div>
                 )}
               </div>
