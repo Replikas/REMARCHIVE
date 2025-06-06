@@ -492,7 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Regular user delete endpoint - users can delete their own fanworks
-  app.delete('/api/fanworks/:id', isAuthenticated, async (req: AuthRequest, res) => {
+  app.delete('/api/fanworks/:id', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const fanworkId = parseInt(req.params.id);
       const userId = req.user!.id;
