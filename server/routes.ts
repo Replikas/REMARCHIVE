@@ -146,6 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fanwork routes
   app.get('/api/fanworks', optionalAuth as any, async (req: AuthRequest, res) => {
     try {
+      console.log('=== FETCHING FANWORKS DEBUG ===');
       const filters = {
         type: req.query.type ? (Array.isArray(req.query.type) ? req.query.type as string[] : [req.query.type as string]) : undefined,
         rating: req.query.rating ? (Array.isArray(req.query.rating) ? req.query.rating as string[] : [req.query.rating as string]) : undefined,
@@ -155,8 +156,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
       };
+      
+      console.log('Filters applied:', filters);
 
       const fanworks = await storage.getFanworks(filters);
+      console.log('Fanworks found:', fanworks.length, fanworks);
       res.json(fanworks);
     } catch (error) {
       console.error('Error fetching fanworks:', error);
@@ -182,10 +186,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/fanworks', authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
     try {
+      console.log('=== FANWORK UPLOAD DEBUG ===');
+      console.log('Request body:', req.body);
+      console.log('Request file:', req.file ? { name: req.file.originalname, size: req.file.size, mimetype: req.file.mimetype } : 'No file');
+      console.log('User:', req.user);
+      
       let contentUrl: string | undefined;
       
       // Upload file to Cloudinary if present
       if (req.file) {
+        console.log('Uploading to Cloudinary...');
         const result = await cloudinary.uploader.upload(
           `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
           {
@@ -195,25 +205,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         );
         contentUrl = result.secure_url;
+        console.log('Cloudinary upload successful:', contentUrl);
       }
       
-      const fanworkData = insertFanworkSchema.parse({
+      const fanworkData = {
         ...req.body,
         authorId: req.user!.id,
         contentUrl,
-      });
+      };
+      
+      console.log('Fanwork data before validation:', fanworkData);
+      
+      const validatedData = insertFanworkSchema.parse(fanworkData);
+      console.log('Validated fanwork data:', validatedData);
 
-      const fanwork = await storage.createFanwork(fanworkData);
+      const fanwork = await storage.createFanwork(validatedData);
+      console.log('Created fanwork:', fanwork);
       
       // Add tags if provided
       if (req.body.tags) {
         const tags = Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags];
+        console.log('Adding tags:', tags);
         await storage.addTagsToFanwork(fanwork.id, tags);
       }
 
+      console.log('=== FANWORK UPLOAD SUCCESS ===');
       res.status(201).json(fanwork);
     } catch (error) {
+      console.log('=== FANWORK UPLOAD ERROR ===');
       if (error instanceof z.ZodError) {
+        console.error('Validation error:', error.errors);
         return res.status(400).json({ message: 'Validation error', errors: error.errors });
       }
       console.error('Error creating fanwork:', error);
@@ -402,6 +423,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error unbanning user:', error);
       res.status(500).json({ message: 'Failed to unban user' });
+    }
+  });
+
+  app.get('/api/admin/users', requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
     }
   });
 
