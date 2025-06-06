@@ -193,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fanworkData = insertFanworkSchema.parse({
         ...req.body,
         authorId: req.user!.id,
-        fileUrl: req.file ? `/uploads/${req.file.filename}` : undefined,
+        contentUrl: req.file ? `/uploads/${req.file.filename}` : undefined,
       });
 
       const fanwork = await storage.createFanwork(fanworkData);
