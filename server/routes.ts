@@ -9,7 +9,6 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { v2 as cloudinary } from "cloudinary";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
 import { z } from "zod";
 
 // Validation schemas
@@ -38,18 +37,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     url: process.env.CLOUDINARY_URL,
   });
 
-  // Configure multer with Cloudinary storage
-  const multerStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-      folder: 'rickorty-archive',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx'],
-      resource_type: 'auto',
-    },
-  });
-
+  // Configure multer with memory storage for direct Cloudinary upload
   const upload = multer({ 
-    storage: multerStorage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     fileFilter: (req, file, cb) => {
       const allowedTypes = /jpeg|jpg|png|gif|pdf|txt|doc|docx/;
@@ -192,10 +182,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/fanworks', authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
     try {
+      let contentUrl: string | undefined;
+      
+      // Upload file to Cloudinary if present
+      if (req.file) {
+        const result = await cloudinary.uploader.upload(
+          `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
+          {
+            folder: 'rickorty-archive',
+            resource_type: 'auto',
+            allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx']
+          }
+        );
+        contentUrl = result.secure_url;
+      }
+      
       const fanworkData = insertFanworkSchema.parse({
         ...req.body,
         authorId: req.user!.id,
-        contentUrl: req.file ? (req.file as any).path : undefined,
+        contentUrl,
       });
 
       const fanwork = await storage.createFanwork(fanworkData);
