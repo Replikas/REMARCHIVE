@@ -136,7 +136,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
-      res.json({ id: user.id, email: user.email, username: user.username, ageVerified: user.ageVerified });
+      res.json({ 
+        id: user.id, 
+        email: user.email, 
+        username: user.username, 
+        ageVerified: user.ageVerified,
+        createdAt: user.createdAt,
+        firstName: user.firstName,
+        lastName: user.lastName
+      });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
