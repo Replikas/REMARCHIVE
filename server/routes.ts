@@ -8,6 +8,8 @@ import { insertFanworkSchema, insertCommentSchema, insertReportSchema } from "@s
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 import { z } from "zod";
 
 // Validation schemas
@@ -31,19 +33,21 @@ const ao3ImportSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Configure multer for file uploads
-  const multerStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadDir = path.join(process.cwd(), 'uploads');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      cb(null, uploadDir);
+  // Configure Cloudinary
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
+  // Configure multer with Cloudinary storage
+  const multerStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'rickorty-archive',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx'],
+      resource_type: 'auto',
     },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
   });
 
   const upload = multer({ 
@@ -193,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fanworkData = insertFanworkSchema.parse({
         ...req.body,
         authorId: req.user!.id,
-        contentUrl: req.file ? `/uploads/${req.file.filename}` : undefined,
+        contentUrl: req.file ? (req.file as any).path : undefined,
       });
 
       const fanwork = await storage.createFanwork(fanworkData);
