@@ -36,7 +36,7 @@ export default function ContentCard({
   });
 
   const likeMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/fanworks/${fanwork.id}/like`),
+    mutationFn: () => apiRequest(`/api/fanworks/${fanwork.id}/like`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/fanworks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/fanworks", fanwork.id, "interactions"] });
@@ -62,7 +62,7 @@ export default function ContentCard({
   });
 
   const bookmarkMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/fanworks/${fanwork.id}/bookmark`),
+    mutationFn: () => apiRequest(`/api/fanworks/${fanwork.id}/bookmark`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/fanworks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/fanworks", fanwork.id, "interactions"] });
@@ -88,7 +88,7 @@ export default function ContentCard({
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", `/api/fanworks/${fanwork.id}`),
+    mutationFn: () => apiRequest(`/api/fanworks/${fanwork.id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/fanworks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/liked-fanworks"] });
