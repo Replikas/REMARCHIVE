@@ -13,10 +13,13 @@ try {
   console.log('Building frontend with production config...');
   execSync('vite build --config vite.config.production.ts', { stdio: 'inherit' });
   
-  console.log('Building backend...');
-  execSync('esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist', { stdio: 'inherit' });
+  console.log('Copying production server...');
+  execSync('cp server/index.production.ts dist/index.js', { stdio: 'inherit' });
   
   console.log('Production build completed successfully!');
+  console.log('Files ready for deployment:');
+  console.log('- Frontend: dist/public/');
+  console.log('- Backend: dist/index.js');
 } catch (error) {
   console.error('Build failed:', error.message);
   process.exit(1);

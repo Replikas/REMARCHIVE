@@ -38,7 +38,7 @@ npm run db:push
 
 **Build & Deploy:**
 - Build Command: `npm install && node build-production.js`
-- Start Command: `npm start`
+- Start Command: `NODE_ENV=production node dist/index.js`
 
 ### 2. Environment Variables
 Add these environment variables in Render:
@@ -124,17 +124,31 @@ npm run build
 
 ### Common Issues:
 
+**Critical Render Deployment Issues Fixed:**
+
 **Vite Build Failures (Replit Plugin Issues):**
-The project uses Replit-specific plugins that cause build failures on Render. Solution:
-- Use the custom build script: `node build-production.js`
-- This script uses `vite.config.production.ts` which excludes Replit plugins
-- If build still fails, try: `NODE_ENV=production vite build --config vite.config.production.ts`
+- Custom build script `build-production.js` excludes Replit plugins
+- Uses `vite.config.production.ts` for clean production builds
+- Production server file `server/index.production.ts` handles Render-specific requirements
+
+**Port Configuration:**
+- Fixed to use Render's `PORT` environment variable
+- Fallback to 5000 for local development
+
+**Static File Serving:**
+- Production server correctly serves built assets from `dist/public/`
+- Proper SPA routing with catch-all handler
+- Optimized caching headers for static assets
 
 **Build Failures:**
-- Check Node.js version compatibility (use Node 18+ recommended)
-- Verify all dependencies are in `package.json`
-- Review build logs for specific errors
-- Clear build cache if needed
+- Node.js 18+ required for compatibility
+- All dependencies must be in package.json (no dev-only packages in production)
+- Build process creates: `dist/public/` (frontend) and `dist/index.js` (backend)
+
+**Common Solutions:**
+- If build fails: Check build logs for missing dependencies
+- If server won't start: Verify DATABASE_URL format and environment variables
+- If static files not served: Ensure build completed successfully
 
 **Database Connection Issues:**
 - Verify DATABASE_URL format
