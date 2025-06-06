@@ -77,7 +77,7 @@ export interface IStorage {
   hideFanwork(fanworkId: number, data: { moderationReason: string; moderatedBy: string; moderatedAt: Date }): Promise<Fanwork>;
   unhideFanwork(fanworkId: number): Promise<Fanwork>;
   updateUserRole(userId: string, role: string): Promise<User>;
-  verifyUserAge(userId: string): Promise<User>;
+  verifyUserAge(userId: number): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -403,7 +403,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async verifyUserAge(userId: string): Promise<User> {
+  async verifyUserAge(userId: number): Promise<User> {
     const [user] = await db
       .update(users)
       .set({ ageVerified: true })

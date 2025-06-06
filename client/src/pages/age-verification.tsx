@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Shield, AlertTriangle } from "lucide-react";
 export default function AgeVerification() {
   const [confirmed, setConfirmed] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const verifyAgeMutation = useMutation({
     mutationFn: async () => {
@@ -19,12 +20,12 @@ export default function AgeVerification() {
       });
     },
     onSuccess: () => {
+      // Invalidate and refetch user data to update authentication state
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Age Verified",
         description: "You now have access to all content on the platform.",
       });
-      // Refresh the page to update authentication state
-      window.location.reload();
     },
     onError: (error: Error) => {
       toast({
