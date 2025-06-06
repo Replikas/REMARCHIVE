@@ -65,7 +65,7 @@ export default function UploadPage() {
       });
 
       if (selectedFile) {
-        formData.append("image", selectedFile);
+        formData.append("file", selectedFile);
       }
 
       return await apiRequest("POST", "/api/fanworks", formData);
