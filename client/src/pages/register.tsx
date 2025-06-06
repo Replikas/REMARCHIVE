@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,7 @@ export default function Register() {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const queryClient = useQueryClient();
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -56,8 +57,10 @@ export default function Register() {
     },
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
+      // Invalidate and refetch user data to update authentication state
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
-        title: "Welcome to the Rick and Morty Fanwork Archive!",
+        title: "Welcome to Rick and Morty Archive!",
         description: "Your account has been created successfully.",
       });
       setLocation("/");
