@@ -14,6 +14,7 @@ import Upload from "@/pages/upload";
 import Profile from "@/pages/profile";
 import AgeVerification from "@/pages/age-verification";
 import AdminPanel from "@/pages/admin";
+import FanworkDetail from "@/pages/fanwork-detail";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -46,6 +47,7 @@ function Router() {
           <Route path="/upload" component={Upload} />
           <Route path="/profile" component={Profile} />
           <Route path="/admin" component={AdminPanel} />
+          <Route path="/fanwork/:id" component={FanworkDetail} />
         </>
       )}
       <Route component={NotFound} />

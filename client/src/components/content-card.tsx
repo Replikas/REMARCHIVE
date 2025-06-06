@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Heart, MessageCircle, Bookmark, BookOpen, Clock, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "wouter";
 
 interface ContentCardProps {
   fanwork: any;
@@ -188,7 +189,11 @@ export default function ContentCard({
 
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-lg text-foreground truncate">{fanwork.title}</h3>
+                <Link href={`/fanwork/${fanwork.id}`}>
+                  <h3 className="font-semibold text-lg text-foreground truncate hover:text-neon-green cursor-pointer transition-colors">
+                    {fanwork.title}
+                  </h3>
+                </Link>
                 <Badge className={`${getRatingColor(fanwork.rating)} text-white text-xs`}>
                   {fanwork.rating.replace("-", " ")}
                 </Badge>
@@ -292,9 +297,11 @@ export default function ContentCard({
 
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
-          <h3 className="font-semibold text-lg leading-tight text-foreground">
-            {fanwork.title}
-          </h3>
+          <Link href={`/fanwork/${fanwork.id}`}>
+            <h3 className="font-semibold text-lg leading-tight text-foreground hover:text-neon-green cursor-pointer transition-colors">
+              {fanwork.title}
+            </h3>
+          </Link>
           <Badge className={`${getRatingColor(fanwork.rating)} text-white text-xs ml-2`}>
             {fanwork.rating.replace("-", " ")}
           </Badge>
