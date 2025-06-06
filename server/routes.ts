@@ -491,6 +491,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Regular user delete endpoint - users can delete their own fanworks
+  app.delete('/api/fanworks/:id', isAuthenticated, async (req: AuthRequest, res) => {
+    try {
+      const fanworkId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      // Get the fanwork to check ownership
+      const fanwork = await storage.getFanwork(fanworkId);
+      if (!fanwork) {
+        return res.status(404).json({ message: 'Fanwork not found' });
+      }
+      
+      // Check if user owns the fanwork
+      if (fanwork.authorId !== userId) {
+        return res.status(403).json({ message: 'Not authorized to delete this fanwork' });
+      }
+      
+      await storage.deleteFanwork(fanworkId);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting fanwork:', error);
+      res.status(500).json({ message: 'Failed to delete fanwork' });
+    }
+  });
+
   app.delete('/api/admin/fanworks/:id', requireModerator, async (req: AuthRequest, res) => {
     try {
       const fanworkId = parseInt(req.params.id);

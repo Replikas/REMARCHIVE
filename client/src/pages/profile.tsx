@@ -155,6 +155,7 @@ export default function Profile() {
                     fanwork={fanwork} 
                     viewMode="grid"
                     showAuthor={false}
+                    showDeleteButton={true}
                   />
                 ))}
               </div>

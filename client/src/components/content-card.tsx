@@ -9,19 +9,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { Heart, MessageCircle, Bookmark, BookOpen, Clock } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, BookOpen, Clock, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ContentCardProps {
   fanwork: any;
   viewMode?: "grid" | "list";
   showAuthor?: boolean;
+  showDeleteButton?: boolean;
 }
 
 export default function ContentCard({ 
   fanwork, 
   viewMode = "grid", 
-  showAuthor = true 
+  showAuthor = true,
+  showDeleteButton = false
 }: ContentCardProps) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -85,6 +87,37 @@ export default function ContentCard({
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/fanworks/${fanwork.id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/fanworks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/liked-fanworks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/bookmarked-fanworks"] });
+      toast({
+        title: "Success",
+        description: "Fanwork deleted successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete fanwork",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getRatingColor = (rating: string) => {
     switch (rating) {
       case "all-ages": return "bg-blue-600";
@@ -119,6 +152,13 @@ export default function ContentCard({
       return;
     }
     bookmarkMutation.mutate();
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this fanwork? This action cannot be undone.")) {
+      deleteMutation.mutate();
+    }
   };
 
   if (viewMode === "list") {
@@ -335,7 +375,21 @@ export default function ContentCard({
               {fanwork.counts?.bookmarks || 0}
             </Button>
           </div>
-          <span>{formatDistanceToNow(new Date(fanwork.createdAt), { addSuffix: true })}</span>
+          <div className="flex items-center space-x-2">
+            <span>{formatDistanceToNow(new Date(fanwork.createdAt), { addSuffix: true })}</span>
+            {showDeleteButton && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+                className="p-0 h-auto hover:text-red-500 text-muted-foreground"
+                title="Delete fanwork"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
