@@ -14,7 +14,7 @@ try {
   
   // Use the production vite config that excludes Replit plugins
   console.log('Building frontend with production config...');
-  execSync('./node_modules/.bin/vite build --config vite.config.production.ts', { stdio: 'inherit' });
+  execSync('npx vite build --config vite.config.production.ts', { stdio: 'inherit' });
   
   console.log('Copying production server...');
   execSync('cp server/index.production.ts dist/index.js', { stdio: 'inherit' });
@@ -28,9 +28,9 @@ try {
   console.error('Trying alternative build approach...');
   
   try {
-    // Fallback: use node to run vite directly
-    console.log('Using direct vite execution...');
-    execSync('node ./node_modules/vite/bin/vite.js build --config vite.config.production.ts', { stdio: 'inherit' });
+    // Fallback: use npx with explicit vite call
+    console.log('Using npx vite execution...');
+    execSync('npx --yes vite build --config vite.config.production.ts', { stdio: 'inherit' });
     execSync('cp server/index.production.ts dist/index.js', { stdio: 'inherit' });
     console.log('Fallback build completed successfully!');
   } catch (fallbackError) {
