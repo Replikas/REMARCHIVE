@@ -17,9 +17,9 @@ interface SidebarProps {
 }
 
 const contentTypes = [
-  { value: "artwork", label: "Artwork", count: 2847 },
-  { value: "fanfiction", label: "Fanfiction", count: 1923 },
-  { value: "comic", label: "Comics", count: 456 },
+  { value: "artwork", label: "Artwork" },
+  { value: "fanfiction", label: "Fanfiction" },
+  { value: "comic", label: "Comics" },
 ];
 
 const ratings = [
@@ -80,7 +80,6 @@ export default function Sidebar({
                   className="data-[state=checked]:bg-neon-green data-[state=checked]:border-neon-green"
                 />
                 <span className="text-muted-foreground flex-1">{type.label}</span>
-                <span className="text-xs text-muted-foreground">({type.count})</span>
               </label>
             ))}
           </CardContent>
