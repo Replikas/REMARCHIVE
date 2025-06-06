@@ -273,9 +273,11 @@ export default function UploadPage() {
                               <FileImage className="h-12 w-12 text-neon-green mx-auto mb-4" />
                               <p className="text-sm text-muted-foreground mb-3">
                                 Drag & drop an image or{" "}
-                                <label className="text-neon-green cursor-pointer hover:underline">
+                                <label htmlFor="file-upload" className="text-neon-green cursor-pointer hover:underline">
                                   browse files
                                   <input
+                                    id="file-upload"
+                                    name="file-upload"
                                     type="file"
                                     className="hidden"
                                     accept="image/*"

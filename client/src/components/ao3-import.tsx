@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+// @ts-ignore
 import { Loader2, Download, ExternalLink, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -179,9 +180,11 @@ export default function AO3Import({ onImport }: AO3ImportProps) {
         <CardContent className="space-y-4">
           {/* URL Import Section */}
           <div className="space-y-2">
-            <Label className="text-foreground">AO3 Work URL</Label>
+            <Label htmlFor="ao3-url" className="text-foreground">AO3 Work URL</Label>
             <div className="flex gap-2">
               <Input
+                id="ao3-url"
+                name="ao3-url"
                 placeholder="https://archiveofourown.org/works/12345"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -203,8 +206,10 @@ export default function AO3Import({ onImport }: AO3ImportProps) {
 
           {/* Manual Import Section */}
           <div className="space-y-2">
-            <Label className="text-foreground">Or paste story content manually</Label>
+            <Label htmlFor="manual-content" className="text-foreground">Or paste story content manually</Label>
             <Textarea
+              id="manual-content"
+              name="manual-content"
               placeholder="Paste your fanfiction content here...\n\nTip: Include the title on the first line for automatic detection"
               className="bg-dark-surface border-border text-foreground placeholder:text-muted-foreground min-h-[150px] font-mono focus:border-neon-green"
               onChange={(e) => {
