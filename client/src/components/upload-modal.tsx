@@ -79,7 +79,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
         }
       });
       
-      return apiRequest('/api/uploads', {
+      return apiRequest('/api/fanworks', {
         method: 'POST',
         body: formData,
       });
@@ -89,7 +89,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
         title: "Success",
         description: "Your fanwork has been uploaded successfully!",
       });
-      queryClient.invalidateQueries({ queryKey: ['uploads'] });
+      queryClient.invalidateQueries({ queryKey: ['fanworks'] });
       onOpenChange(false);
       form.reset();
       setSelectedFile(null);
